@@ -15,8 +15,9 @@
 
 Khashl is a single-header macro-based generic hash table library in C. It is an
 improved version of [khash][khash] from [klib][klib] and is one of the faster
-hash table implementations in both C and C++. Klib also has a copy of khashl
-for historical reason. This separate repo provides more [examples][ex].
+hash table implementations in C/C++. Klib also has a copy of khashl for
+historical reason. This repo provides more [examples][ex] and better
+documentation.
 
 ## <a name="use"></a>Usage
 
@@ -97,6 +98,7 @@ responsible for managing the memory allocated to the strings.
 Here is an example for counting the number of distinct words on the commnand
 line:
 ```c
+// To run this program: `./this_prog abc bc abc a bc`
 #include <stdio.h>
 #include <string.h>
 #include "khashl.h"
