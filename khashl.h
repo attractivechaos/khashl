@@ -137,7 +137,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 #define __KHASHL_IMPL_GET(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	SCOPE khint_t prefix##_getp_core(const HType *h, const khkey_t *key, khint_t hash) { \
 		khint_t i, last, n_buckets, mask; \
-		if (h->keys == 0) return 0; \
+		if (h->keys == 0) return 1; \
 		n_buckets = (khint_t)1U << h->bits; \
 		mask = n_buckets - 1U; \
 		i = last = __kh_h2b(hash, h->bits); \

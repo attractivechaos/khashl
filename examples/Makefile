@@ -1,12 +1,15 @@
 CFLAGS=-O2
-EXE=01int 02str
+EXE=11int 12str 21int_ens
 
 all:$(EXE)
 
-01int:01int.c ../khashl.h
+11int:11int.c ../khashl.h
 	$(CC) $(CFLAGS) -I.. -o $@ $<
 
-02str:02str.c ../khashl.h
+12str:12str.c ../khashl.h
+	$(CC) $(CFLAGS) -I.. -o $@ $<
+
+21int_ens:21int_ens.c ../khashl.h
 	$(CC) $(CFLAGS) -I.. -o $@ $<
 
 clean:
