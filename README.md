@@ -4,6 +4,8 @@
 - [Usage](#use)
   - [Integer keys](#int)
   - [String keys](#str)
+  - [Custom keys](#custom)
+- [Algorithm](#algo)
 
 ## <a name="intro"></a>Introduction
 
@@ -48,7 +50,7 @@ where:
  * `scope` is the scope of instantiated functions. It can be empty for global
    visibility or `KH_LOCAL`.
  * `table_type` is the type of the hash table. It can be any symbol that has not
-   be used.
+   been used.
  * `prefix` is the prefix of instantiated functions (see below)
  * `key_type` is the type of keys
  * `val_type` is the type of values
@@ -130,7 +132,23 @@ int main(int argc, char *argv[])
 }
 ```
 
+### <a name="custom"></a>Custom keys
+
+You can put C `struct` into a hash table as long as you provide a hash function
+and an equality function. Note that you can use macro functions.
+
+## <a name="algo"></a>Algorithm
+
+Khashl uses linear probing and power-of-2 capacity. It applies [Fibonacci
+hashing][fib-hash] to protect against bad hash functions and implements
+[deletion without tombstones][no-tombstone]. Khashl uses one bit per bucket
+to indicate whether a bucket is empty. It has minimal memory overhead though
+this comes at the cost of one extra cache miss per query. Khashl does not use
+SIMD.
+
 [klib]: https://github.com/attractivechaos/klib
 [khash]: https://github.com/attractivechaos/klib/blob/master/khash.h
 [ex]: https://github.com/attractivechaos/khashl/tree/main/examples
 [khashl.h]: https://github.com/attractivechaos/khashl/blob/main/khashl.h
+[fib-hash]: https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/
+[no-tombstone]: https://attractivechaos.wordpress.com/2019/12/28/deletion-from-hash-tables-without-tombstones/
