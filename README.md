@@ -6,6 +6,9 @@
   - [String keys](#str)
   - [Custom keys](#custom)
 - [Algorithm](#algo)
+- [Ensemble of hash tables](#ensemble)
+  - [Rationale](#rationale)
+  - [Use ensemble](#use-ens)
 
 ## <a name="intro"></a>Introduction
 
@@ -145,6 +148,57 @@ hashing][fib-hash] to protect against bad hash functions and implements
 to indicate whether a bucket is empty. It has minimal memory overhead though
 this comes at the cost of one extra cache miss per query. Khashl does not use
 SIMD.
+
+## <a name="ensemble"></a>Ensemble of hash tables
+
+Khashl uses 32-bit hashes, which means it cannot directly store more than 4
+billion keys. Nonetheless, it has a special way to handle billions of keys:
+ensemble of hash tables.
+
+### <a name="rationale"></a>Rationale
+
+Suppose a hash table consists of `n` smaller sub hash tables. A key `x` is
+located in sub-table `hash(x) % n`. Because it is rare for all sub-tables to
+rehash at the same time, the peak memory can be reduced. You can find more
+explanation in [this blog][ensemble]. In my opinion, **using an ensemble of
+hash tables it the best strategy for huge hash tables**.
+
+We can implement a hash table ensemble in the user space for any libraries. I
+have been using the idea since 2015. Nonetheless, it is more convenient to
+hide the details behind the library code such that users can use familiar hash
+table APIs. [phmap][phmap] is perhaps the first library to do this. Now khashl
+has this functionality as well.
+
+### <a name="use-ens"></a>Use ensemble
+
+The [integer example above](#int) becomes:
+```c
+#include <stdio.h>
+#include <stdint.h>
+#include "khashl.h"
+// use "KHASHE" for instantiation
+KHASHE_MAP_INIT(KH_LOCAL, map32_t, map32, uint32_t, int, kh_hash_uint32, kh_eq_generic)
+int main(void) {
+    int absent;
+    kh_ensitr_t k; // use kh_ensitr_t instead of khint_t
+    map32_t *h = map32_init(6); // use 2**6=64 sub hash tables
+    k = map32_put(h, 20, &absent); // get iterator to the new bucket
+    kh_ens_val(h, k) = 2; // use kh_ens_val() instead of kh_val()
+    k = map32_get(h, 30); // query the hash table
+	if (!kh_ens_is_end(k)) printf("found key '30'\n"); // use kh_ens_is_end()
+    kh_ens_foreach(h, k) { // use kh_ens_foreach() instead of kh_foreach()
+        printf("h[%u]=%d\n", kh_ens_key(h, k), kh_ens_val(h, k));
+    }
+    map32_destroy(h);
+    return 0;
+}
+```
+You will have to change most macros and iteration:
+ * `khint_t` &#8594; `kh_ensitr_t` (iterator type)
+ * `kh_key()` &#8594; `kh_ens_key()`
+ * `kh_val()` &#8594; `kh_ens_val()`
+ * `kh_foreach()` &#8594; `kh_ens_foreach()`
+ * `prefix_init(void)` &#8594; `prefix_init(int)`
 
 [klib]: https://github.com/attractivechaos/klib
 [khash]: https://github.com/attractivechaos/klib/blob/master/khash.h
