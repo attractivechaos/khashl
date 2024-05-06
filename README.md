@@ -4,8 +4,11 @@ Khashl is a single-header macro-based generic hash table library in C. It is an
 improved version of [khash][khash] from [klib][klib]. Klib also has a copy of
 khashl for historical reason. This separate repo provides more [examples][ex].
 
-Here is a small example for integer keys:
+## Usage
 
+### Simple keys
+
+Here is a small example for integer keys:
 ```c
 #include <stdio.h>
 #include <stdint.h>
@@ -17,18 +20,51 @@ int main(void) {
     int absent;
     khint_t k;
     map32_t *h = map32_init();
-    k = map32_put(h, 20, &absent);
-    kh_val(h, k) = 2;
-    k = map32_get(h, 30);
+    k = map32_put(h, 20, &absent); // get iterator to the new bucket
+    kh_val(h, k) = 2; // set value
+    k = map32_get(h, 30); // query the hash table
 	if (k == kh_end(h)) printf("found key '30'\n");
-    kh_foreach(h, k) {
+    kh_foreach(h, k) { // iterate
         printf("h[%u]=%d\n", kh_key(h, k), kh_val(h, k));
     }
-    map32_destroy(h);
+    map32_destroy(h); // free
     return 0;
 }
 ```
 
+To use khashl, you need to instantiate functions specific to your types with
+```c
+KHASHL_MAP_INIT(scope, table_type, prefix, key_type, val_type, hash_func, eq_func)
+```
+where:
+ * `scope` is the scope of instantiated functions. It can be empty for global
+   visibility or `KH_LOCAL`.
+ * `table_type` is the type of the hash table. It can be any symbol that has not
+   be used.
+ * `prefix` is the prefix of instantiated functions (see below)
+ * `key_type` is the type of keys
+ * `val_type` is the type of values
+ * `hash_func` is the hash function. Khashl provides hash functions for 32-bit
+   integers, 64-bit integers and strings. See [khashl.h][khashl.h] for details.
+ * `eq_func` is the equality function. For primitive types, use the
+   `kh_eq_generic()` macro; for strings, use `kh_eq_str()`.
+
+After instantiation, you will be able to use the following functions:
+ * `table_type *prefix_init(void)` for initialize an empty hash table.
+ * `khint_t prefix_put(table_type*, key_type, int*)` for put a key into the
+   table. It returns the position in the table. The last parameter tells you
+   whether the key is new.
+ * `khint_t prefix_get(table_type*, key_type)` for query a key. It returns
+   the position of the key if the key is present; otherwise the function
+   returns `kh_end(table)`.
+ * `prefix_del(table_type*, khint)` for deleting the key at a postion.
+ * `prefix_destroy(table_type*)` for deallocating the entire table.
+
+In khashl, a position is like an iterator. You can retrieve or modify keys and
+values with macros `kh_key(table, pos)` and `kh_val(table, pos)`, respectively.
+Macro `kh_size(table)` gives the number of elements in the table.
+
 [klib]: https://github.com/attractivechaos/klib
 [khash]: https://github.com/attractivechaos/klib/blob/master/khash.h
 [ex]: https://github.com/attractivechaos/khashl/tree/main/examples
+[khashl.h]: https://github.com/attractivechaos/khashl/blob/main/khashl.h
