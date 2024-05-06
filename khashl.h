@@ -145,7 +145,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 #define __KHASHL_IMPL_GET(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	SCOPE khint_t prefix##_getp_core(const HType *h, const khkey_t *key, khint_t hash) { \
 		khint_t i, last, n_buckets, mask; \
-		if (h->keys == 0) return 1; \
+		if (h->keys == 0) return 0; \
 		n_buckets = (khint_t)1U << h->bits; \
 		mask = n_buckets - 1U; \
 		i = last = __kh_h2b(hash, h->bits); \
@@ -295,7 +295,7 @@ typedef struct {
 		low = hash & ((1U<<g->bits) - 1); \
 		h = &g->sub[low]; \
 		ret = prefix##_sub_getp_core(h, key, hash); \
-		if (ret == 1U<<h->bits) r.sub = low, r.pos = (khint_t)-1; \
+		if (ret == kh_end(h)) r.sub = low, r.pos = (khint_t)-1; \
 		else r.sub = low, r.pos = ret; \
 		return r; \
 	} \
@@ -309,8 +309,7 @@ typedef struct {
 		h = &g->sub[low]; \
 		ret = prefix##_sub_putp_core(h, key, hash, absent); \
 		if (*absent) ++g->count; \
-		if (ret == 1U<<h->bits) r.sub = low, r.pos = (khint_t)-1; \
-		else r.sub = low, r.pos = ret; \
+		r.sub = low, r.pos = ret; \
 		return r; \
 	} \
 	SCOPE kh_ensitr_t prefix##_put(HType *g, const khkey_t key, int *absent) { return prefix##_putp(g, &key, absent); } \
