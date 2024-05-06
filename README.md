@@ -9,6 +9,7 @@
 - [Ensemble of hash tables](#ensemble)
   - [Rationale](#rationale)
   - [Use ensemble](#use-ens)
+- [Performance](#perf)
 
 ## <a name="intro"></a>Introduction
 
@@ -201,6 +202,14 @@ You will have to change most macros and iteration:
  * `prefix_init(void)` &#8594; `prefix_init(int b)`, which enables `2**b` sub hash tables.
  * `k == kh_end(h)` &#8594; `kh_ens_is_end(k)` for testing the presence of a key
 
+## <a name="perf"></a>Performance
+
+See [udb3][udb3] for now. Briefly, `boost::unordered_flat_map`, which is often
+considered the fastest hash map implementation, can be twice as fast as khashl
+but in the ensemble mode, khashl uses half of memory or even less when
+deletions are frequent. Khashl is comparable to other best performing C hash
+table libraries in speed and it again uses less memory.
+
 [klib]: https://github.com/attractivechaos/klib
 [khash]: https://github.com/attractivechaos/klib/blob/master/khash.h
 [ex]: https://github.com/attractivechaos/khashl/tree/main/examples
@@ -209,3 +218,4 @@ You will have to change most macros and iteration:
 [no-tombstone]: https://attractivechaos.wordpress.com/2019/12/28/deletion-from-hash-tables-without-tombstones/
 [ensemble]: https://greg7mdp.github.io/parallel-hashmap/
 [phmap]: https://github.com/greg7mdp/parallel-hashmap
+[udb3]: https://github.com/attractivechaos/udb3/
