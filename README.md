@@ -38,7 +38,7 @@ int main(void) {
     k = map32_put(h, 20, &absent); // get iterator to the new bucket
     kh_val(h, k) = 2; // set value
     k = map32_get(h, 30); // query the hash table
-	if (k == kh_end(h)) printf("found key '30'\n");
+    if (k == kh_end(h)) printf("found key '30'\n");
     kh_foreach(h, k) { // iterate
         printf("h[%u]=%d\n", kh_key(h, k), kh_val(h, k));
     }
@@ -201,7 +201,7 @@ int main(void) {
     k = map32_put(h, 20, &absent); // get iterator to the new bucket
     kh_ens_val(h, k) = 2; // use kh_ens_val() instead of kh_val()
     k = map32_get(h, 30); // query the hash table
-	if (!kh_ens_is_end(k)) printf("found key '30'\n"); // use kh_ens_is_end()
+    if (!kh_ens_is_end(k)) printf("found key '30'\n"); // use kh_ens_is_end()
     kh_ens_foreach(h, k) { // use kh_ens_foreach() instead of kh_foreach()
         printf("h[%u]=%d\n", kh_ens_key(h, k), kh_ens_val(h, k));
     }
