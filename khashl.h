@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "r19"
+#define AC_VERSION_KHASHL_H "r20"
 
 #include <stdlib.h>
 #include <string.h>
@@ -407,7 +407,7 @@ typedef struct {
 #define kh_eq_str(a, b) (strcmp((a), (b)) == 0)
 #define kh_hash_dummy(x) ((khint_t)(x))
 
-static kh_inline khint_t kh_hash_uint32(khint_t x) { // murmur finishing
+static kh_inline khint_t kh_hash_uint32(khint_t x) { /* murmur finishing */
 	x ^= x >> 16;
 	x *= 0x85ebca6bU;
 	x ^= x >> 13;
@@ -416,7 +416,7 @@ static kh_inline khint_t kh_hash_uint32(khint_t x) { // murmur finishing
 	return x;
 }
 
-static kh_inline khint_t kh_hash_uint64(khint64_t x) { // splitmix64; see https://nullprogram.com/blog/2018/07/31/ for inversion
+static kh_inline khint_t kh_hash_uint64(khint64_t x) { /* splitmix64; see https://nullprogram.com/blog/2018/07/31/ for inversion */
 	x ^= x >> 30;
 	x *= 0xbf58476d1ce4e5b9ULL;
 	x ^= x >> 27;
