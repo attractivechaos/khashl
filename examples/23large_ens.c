@@ -3,7 +3,7 @@
 #include <assert.h>
 #include "khashl.h"
 
-KHASHE_MAP_INIT(KH_LOCAL, map64_t, map64, uint64_t, uint64_t, kh_hash_splitmix64, kh_eq_generic)
+KHASHE_MAP_INIT(KH_LOCAL, map64_t, map64, uint64_t, uint64_t, kh_hash_uint64, kh_eq_generic)
 
 static double udb_cputime(void)
 {

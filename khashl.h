@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "0.3"
+#define AC_VERSION_KHASHL_H "r19"
 
 #include <stdlib.h>
 #include <string.h>
@@ -407,17 +407,7 @@ typedef struct {
 #define kh_eq_str(a, b) (strcmp((a), (b)) == 0)
 #define kh_hash_dummy(x) ((khint_t)(x))
 
-static kh_inline khint_t kh_hash_uint32(khint_t key) {
-	key += ~(key << 15);
-	key ^=  (key >> 10);
-	key +=  (key << 3);
-	key ^=  (key >> 6);
-	key += ~(key << 11);
-	key ^=  (key >> 16);
-	return key;
-}
-
-static kh_inline khint_t kh_hash_murmurmix32(khint_t x) {
+static kh_inline khint_t kh_hash_uint32(khint_t x) { // murmur finishing
 	x ^= x >> 16;
 	x *= 0x85ebca6bU;
 	x ^= x >> 13;
@@ -426,18 +416,7 @@ static kh_inline khint_t kh_hash_murmurmix32(khint_t x) {
 	return x;
 }
 
-static kh_inline khint_t kh_hash_uint64(khint64_t key) {
-	key = ~key + (key << 21);
-	key = key ^ key >> 24;
-	key = (key + (key << 3)) + (key << 8);
-	key = key ^ key >> 14;
-	key = (key + (key << 2)) + (key << 4);
-	key = key ^ key >> 28;
-	key = key + (key << 31);
-	return (khint_t)key;
-}
-
-static kh_inline khint_t kh_hash_splitmix64(khint64_t x) {
+static kh_inline khint_t kh_hash_uint64(khint64_t x) { // splitmix64; see https://nullprogram.com/blog/2018/07/31/ for inversion
 	x ^= x >> 30;
 	x *= 0xbf58476d1ce4e5b9ULL;
 	x ^= x >> 27;
