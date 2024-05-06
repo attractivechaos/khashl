@@ -38,7 +38,7 @@ int main(void) {
     k = map32_put(h, 20, &absent); // get iterator to the new bucket
     kh_val(h, k) = 2; // set value
     k = map32_get(h, 30); // query the hash table
-    if (k == kh_end(h)) printf("found key '30'\n");
+    if (k < kh_end(h)) printf("found key '30'\n");
     kh_foreach(h, k) { // iterate
         printf("h[%u]=%d\n", kh_key(h, k), kh_val(h, k));
     }
