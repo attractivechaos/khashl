@@ -6,7 +6,7 @@ khashl for historical reason. This separate repo provides more [examples][ex].
 
 ## Usage
 
-### Simple keys
+### Integer keys
 
 Here is a small example for integer keys:
 ```c
@@ -63,6 +63,60 @@ After instantiation, you will be able to use the following functions:
 In khashl, a position is like an iterator. You can retrieve or modify keys and
 values with macros `kh_key(table, pos)` and `kh_val(table, pos)`, respectively.
 Macro `kh_size(table)` gives the number of elements in the table.
+
+### String keys
+
+It is important to note that khashl keeps the pointers to strings. You are
+responsible for managing the memory allocated to the strings.
+
+Here is an example for counting the number of distinct words on the commnand
+line:
+```c
+#include <stdio.h>
+#include <string.h>
+#include "khashl.h"
+KHASHL_SET_INIT(KH_LOCAL, strmap_t, strmap, const char*, kh_hash_str, kh_eq_str)
+
+int main(int argc, char *argv[])
+{
+    strmap_t *h;
+    khint_t k;
+    int i, absent;
+    h = strmap_init();
+    for (i = 1; i < argc; ++i)
+        k = strmap_put(h, argv[i], &absent);
+    printf("# of distinct words: %d\n", kh_size(h));
+    strmap_destroy(h);
+    return 0;
+}
+```
+The following demonstrates how to insert string pointers and their contents into a hash table.
+```c
+// To run this program: `echo a bc a cd bc|./this_prog`
+#include <stdio.h>
+#include <string.h>
+#include "khashl.h"
+KHASHL_SET_INIT(KH_LOCAL, strmap_t, strmap, const char*, kh_hash_str, kh_eq_str)
+
+int main(int argc, char *argv[])
+{
+    char s[4096]; // max string length: 4095 characters
+    strmap_t *h;
+    khint_t k;
+    h = strmap_init();
+    while (scanf("%s", s) > 0) {
+        int absent;
+        k = strmap_put(h, s, &absent);
+        if (absent) kh_key(h, k) = strdup(s);
+        // else, the key is not touched; we do nothing
+    }
+    printf("# of distinct words: %d\n", kh_size(h));
+    // IMPORTANT: free memory allocated by strdup() above
+	kh_foreach(h, k) free((char*)kh_key(h, k));
+    strmap_destroy(h);
+    return 0;
+}
+```
 
 [klib]: https://github.com/attractivechaos/klib
 [khash]: https://github.com/attractivechaos/klib/blob/master/khash.h
