@@ -56,31 +56,42 @@ where:
  * `table_type` is the type of the hash table. It can be any symbol that has not
    been used.
  * `prefix` is the prefix of instantiated functions (see below)
- * `key_type` is the type of keys
- * `val_type` is the type of values
+ * `key_type` is the key type
+ * `val_type` is the value type
  * `hash_func` is the hash function. Khashl provides hash functions for 32-bit
    integers, 64-bit integers and strings. See [khashl.h][khashl.h] for details.
  * `eq_func` is the equality function. For primitive types, use the
    `kh_eq_generic()` macro; for strings, use `kh_eq_str()`.
 
 After instantiation, you will be able to use the following functions:
- * `table_type *prefix_init(void)` for initialize an empty hash table.
- * `khint_t prefix_put(table_type*, key_type, int*)` for put a key into the
+ * `table_type *prefix_init(void)`: initialize an empty hash table.
+ * `khint_t prefix_put(table_type*, key_type, int*)`: put a key into the
    table. It returns the position in the table. The last parameter tells you
    whether the key is new.
- * `khint_t prefix_get(table_type*, key_type)` for query a key. It returns
+ * `khint_t prefix_get(table_type*, key_type)`: query a key. It returns
    the position of the key if the key is present; otherwise the function
    returns `kh_end(table)`.
- * `prefix_del(table_type*, khint)` for deleting the key at a postion.
- * `prefix_destroy(table_type*)` for deallocating the entire table.
+ * `prefix_del(table_type*, khint)`: delete the key at a postion.
+ * `prefix_destroy(table_type*)`: deallocate the entire table.
 
-In khashl, a position is like an iterator. You can retrieve or modify keys and
-values with macros `kh_key(table, pos)` and `kh_val(table, pos)`, respectively.
-Macro `kh_size(table)` gives the number of elements in the table.
+In khashl, a position is like an iterator. `prefix_get()` and `prefix_put()`
+return iterators. Khashl additionally provides the following macros:
+ * `key_type kh_key(table, pos)`: access or modify keys. It can be an L-value.
+   Don't modify the content of keys. If the `key_type` is a pointer, you may
+   change the value of the pointer but not the content the pointer points to.
+ * `val_type kh_val(table, pos)`: access or modify values.
+ * `kh_size(table)`: return the size of the table
+ * `kh_end(table)`: return the capacity of the table
+ * `kh_exist(table, pos)`: test whether the bucket at `pos` is empty. `pos`
+   must be smaller than `kh_end(table)`.
+ * `kh_foreach(table, pos) { }`: iterate a table. `pos` should be defined at the
+   `khint_t` type before this macro. Note that because `prefix_put()` and
+   `prefix_del()` may change the content of the hash table, please do not call
+   these two functions inside a foreach loop.
 
 ### <a name="str"></a>String keys
 
-It is important to note that khashl keeps the pointers to strings. You are
+It is important to note that khashl only keeps the pointers to strings. You are
 responsible for managing the memory allocated to the strings.
 
 Here is an example for counting the number of distinct words on the commnand
@@ -104,7 +115,9 @@ int main(int argc, char *argv[])
     return 0;
 }
 ```
-The following demonstrates how to insert string pointers and their contents into a hash table.
+In this example, the string contents are already stored in the `argv[]` array.
+You don't need to worry about memory management. The following demonstrates
+how to insert string pointers and their contents into a hash table.
 ```c
 // To run this program: `echo a bc a cd bc|./this_prog`
 #include <stdio.h>
@@ -139,7 +152,7 @@ int main(int argc, char *argv[])
 ### <a name="custom"></a>Custom keys
 
 You can put C `struct` into a hash table as long as you provide a hash function
-and an equality function. Note that you can use macro functions.
+and an equality function. You can use macro functions.
 
 ## <a name="algo"></a>Algorithm
 
@@ -207,7 +220,7 @@ You will have to change most macros and iteration:
 See [udb3][udb3] for now. Briefly, `boost::unordered_flat_map`, which is often
 considered the fastest hash map implementation, can be twice as fast as khashl
 but in the ensemble mode, khashl uses half of memory or even less when
-deletions are frequent. Khashl is comparable to other best performing C hash
+deletions are frequent. Khashl is comparable to other high-performance C hash
 table libraries in speed and it again uses less memory.
 
 [klib]: https://github.com/attractivechaos/klib
