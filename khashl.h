@@ -67,6 +67,7 @@ typedef unsigned long long khint64_t;
 #define KH_LOCAL static kh_inline klib_unused
 
 typedef khint32_t khint_t;
+typedef const char *kh_cstr_t;
 
 /***********************
  * Configurable macros *
@@ -328,16 +329,7 @@ typedef struct {
 #define __kh_cached_hash(x) ((x).hash)
 
 #define KHASHL_SET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
-	typedef struct { khkey_t key; } kh_packed HType##_s_bucket_t; \
-	static kh_inline khint_t prefix##_s_hash(HType##_s_bucket_t x) { return __hash_fn(x.key); } \
-	static kh_inline int prefix##_s_eq(HType##_s_bucket_t x, HType##_s_bucket_t y) { return __hash_eq(x.key, y.key); } \
-	KHASHL_INIT(KH_LOCAL, HType, prefix##_s, HType##_s_bucket_t, prefix##_s_hash, prefix##_s_eq) \
-	SCOPE HType *prefix##_init(void) { return prefix##_s_init(); } \
-	SCOPE void prefix##_destroy(HType *h) { prefix##_s_destroy(h); } \
-	SCOPE void prefix##_resize(HType *h, khint_t new_n_buckets) { prefix##_s_resize(h, new_n_buckets); } \
-	SCOPE khint_t prefix##_get(const HType *h, khkey_t key) { HType##_s_bucket_t t; t.key = key; return prefix##_s_getp(h, &t); } \
-	SCOPE int prefix##_del(HType *h, khint_t k) { return prefix##_s_del(h, k); } \
-	SCOPE khint_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_s_bucket_t t; t.key = key; return prefix##_s_putp(h, &t, absent); }
+	KHASHL_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq)
 
 #define KHASHL_MAP_INIT(SCOPE, HType, prefix, khkey_t, kh_val_t, __hash_fn, __hash_eq) \
 	typedef struct { khkey_t key; kh_val_t val; } kh_packed HType##_m_bucket_t; \
@@ -371,15 +363,7 @@ typedef struct {
 	SCOPE khint_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_cm_bucket_t t; t.key = key, t.hash = __hash_fn(key); return prefix##_cm_putp(h, &t, absent); }
 
 #define KHASHE_SET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
-	typedef struct { khkey_t key; } kh_packed HType##_s_bucket_t; \
-	static kh_inline khint_t prefix##_s_hash(HType##_s_bucket_t x) { return __hash_fn(x.key); } \
-	static kh_inline int prefix##_s_eq(HType##_s_bucket_t x, HType##_s_bucket_t y) { return __hash_eq(x.key, y.key); } \
-	KHASHE_INIT(KH_LOCAL, HType, prefix##_m, HType##_s_bucket_t, prefix##_s_hash, prefix##_s_eq) \
-	SCOPE HType *prefix##_init(int bits) { return prefix##_s_init(bits); } \
-	SCOPE void prefix##_destroy(HType *h) { prefix##_s_destroy(h); } \
-	SCOPE kh_ensitr_t prefix##_get(const HType *h, khkey_t key) { HType##_s_bucket_t t; t.key = key; return prefix##_s_getp(h, &t); } \
-	SCOPE int prefix##_del(HType *h, kh_ensitr_t k) { return prefix##_s_del(h, k); } \
-	SCOPE kh_ensitr_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_s_bucket_t t; t.key = key; return prefix##_s_putp(h, &t, absent); }
+	KHASHE_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq)
 
 #define KHASHE_MAP_INIT(SCOPE, HType, prefix, khkey_t, kh_val_t, __hash_fn, __hash_eq) \
 	typedef struct { khkey_t key; kh_val_t val; } kh_packed HType##_m_bucket_t; \
@@ -464,7 +448,7 @@ static kh_inline khint_t kh_hash_splitmix64(khint64_t x) {
 
 #define KH_FNV_SEED 11
 
-static kh_inline khint_t kh_hash_str(const char *s) { /* FNV1a */
+static kh_inline khint_t kh_hash_str(kh_cstr_t s) { /* FNV1a */
 	khint_t h = KH_FNV_SEED ^ 2166136261U;
 	const unsigned char *t = (const unsigned char*)s;
 	for (; *t; ++t)

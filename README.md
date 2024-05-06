@@ -100,16 +100,16 @@ line:
 #include <stdio.h>
 #include <string.h>
 #include "khashl.h"
-KHASHL_SET_INIT(KH_LOCAL, strmap_t, strmap, const char*, kh_hash_str, kh_eq_str)
+// Replacing kh_cstr_t with "const char*" works but leads to compiler warnings
+KHASHL_SET_INIT(KH_LOCAL, strmap_t, strmap, kh_cstr_t, kh_hash_str, kh_eq_str)
 
 int main(int argc, char *argv[])
 {
     strmap_t *h;
-    khint_t k;
     int i, absent;
     h = strmap_init();
     for (i = 1; i < argc; ++i)
-        k = strmap_put(h, argv[i], &absent);
+        strmap_put(h, argv[i], &absent);
     printf("# of distinct words: %d\n", kh_size(h));
     strmap_destroy(h);
     return 0;
@@ -123,7 +123,7 @@ how to insert string pointers and their contents into a hash table.
 #include <stdio.h>
 #include <string.h>
 #include "khashl.h"
-KHASHL_MAP_INIT(KH_LOCAL, strmap_t, strmap, const char*, int, kh_hash_str, kh_eq_str)
+KHASHL_MAP_INIT(KH_LOCAL, strmap_t, strmap, kh_cstr_t, int, kh_hash_str, kh_eq_str)
 
 int main(int argc, char *argv[])
 {
