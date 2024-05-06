@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "0.2"
+#define AC_VERSION_KHASHL_H "0.3"
 
 #include <stdlib.h>
 #include <string.h>
@@ -318,7 +318,11 @@ typedef struct {
  * More convenient interface *
  *****************************/
 
+#ifdef KH_NO_PACK
+#define __kh_packed
+#else
 #define __kh_packed __attribute__ ((__packed__))
+#endif
 #define __kh_cached_hash(x) ((x).hash)
 
 #define KHASHL_SET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
@@ -363,6 +367,17 @@ typedef struct {
 	SCOPE khint_t prefix##_get(const HType *h, khkey_t key) { HType##_cm_bucket_t t; t.key = key; t.hash = __hash_fn(key); return prefix##_cm_getp(h, &t); } \
 	SCOPE int prefix##_del(HType *h, khint_t k) { return prefix##_cm_del(h, k); } \
 	SCOPE khint_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_cm_bucket_t t; t.key = key, t.hash = __hash_fn(key); return prefix##_cm_putp(h, &t, absent); }
+
+#define KHASHE_SET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
+	typedef struct { khkey_t key; } __kh_packed HType##_s_bucket_t; \
+	static kh_inline khint_t prefix##_s_hash(HType##_s_bucket_t x) { return __hash_fn(x.key); } \
+	static kh_inline int prefix##_s_eq(HType##_s_bucket_t x, HType##_s_bucket_t y) { return __hash_eq(x.key, y.key); } \
+	KHASHE_INIT(KH_LOCAL, HType, prefix##_m, HType##_s_bucket_t, prefix##_s_hash, prefix##_s_eq) \
+	SCOPE HType *prefix##_init(int bits) { return prefix##_s_init(bits); } \
+	SCOPE void prefix##_destroy(HType *h) { prefix##_s_destroy(h); } \
+	SCOPE kh_ensitr_t prefix##_get(const HType *h, khkey_t key) { HType##_s_bucket_t t; t.key = key; return prefix##_s_getp(h, &t); } \
+	SCOPE int prefix##_del(HType *h, kh_ensitr_t k) { return prefix##_s_del(h, k); } \
+	SCOPE kh_ensitr_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_s_bucket_t t; t.key = key; return prefix##_s_putp(h, &t, absent); }
 
 #define KHASHE_MAP_INIT(SCOPE, HType, prefix, khkey_t, kh_val_t, __hash_fn, __hash_eq) \
 	typedef struct { khkey_t key; kh_val_t val; } __kh_packed HType##_m_bucket_t; \
@@ -416,6 +431,15 @@ static kh_inline khint_t kh_hash_uint32(khint_t key) {
 	return key;
 }
 
+static kh_inline khint_t kh_hash_murmurmix32(khint_t x) {
+	x ^= x >> 16;
+	x *= 0x85ebca6bU;
+	x ^= x >> 13;
+	x *= 0xc2b2ae35U;
+	x ^= x >> 16;
+	return x;
+}
+
 static kh_inline khint_t kh_hash_uint64(khint64_t key) {
 	key = ~key + (key << 21);
 	key = key ^ key >> 24;
@@ -425,6 +449,15 @@ static kh_inline khint_t kh_hash_uint64(khint64_t key) {
 	key = key ^ key >> 28;
 	key = key + (key << 31);
 	return (khint_t)key;
+}
+
+static kh_inline khint_t kh_hash_splitmix64(khint64_t x) {
+	x ^= x >> 30;
+	x *= 0xbf58476d1ce4e5b9ULL;
+	x ^= x >> 27;
+	x *= 0x94d049bb133111ebULL;
+	x ^= x >> 31;
+	return (khint_t)x;
 }
 
 #define KH_FNV_SEED 11

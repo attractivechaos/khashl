@@ -20,16 +20,16 @@ int main(void)
 	k = strmap_put(h, strdup("def"), &absent);
 	kh_val(h, k) = 5;
 	k = strmap_put(h, "ghi", &absent);
-	if (absent) {
+	if (absent) { // if not already in the table
 		kh_key(h, k) = strdup("ghi");
 		kh_val(h, k) = 7;
 	}
 
 	// get
 	k = strmap_get(h, "xyz");
-	assert(k == kh_end(h));
+	assert(k == kh_end(h)); // not found
 	k = strmap_get(h, "abc");
-	assert(k < kh_end(h));
+	assert(k < kh_end(h)); // found
 
 	// iterate
 	kh_foreach(h, k) {

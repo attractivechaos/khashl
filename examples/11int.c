@@ -21,9 +21,9 @@ int main(void)
 
 	// get
 	k = map64_get(h, 30);
-	assert(k == kh_end(h));
+	assert(k == kh_end(h)); // not found
 	k = map64_get(h, 20);
-	assert(k < kh_end(h));
+	assert(k < kh_end(h)); // found
 
 	// iterate
 	kh_foreach(h, k) {
