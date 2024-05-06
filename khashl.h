@@ -388,11 +388,15 @@ typedef struct {
 #define kh_val(h, x) ((h)->keys[x].val)
 #define kh_exist(h, x) __kh_used((h)->used, (x))
 
+#define kh_foreach(h, x) for ((x) = 0; (x) != kh_end(h); ++(x)) if (kh_exist((h), (x)))
+
 #define kh_ens_key(g, x) kh_key(&(g)->sub[(x).sub], (x).pos)
 #define kh_ens_val(g, x) kh_val(&(g)->sub[(x).sub], (x).pos)
 #define kh_ens_exist(g, x) kh_exist(&(g)->sub[(x).sub], (x).pos)
 #define kh_ens_is_end(x) ((x).pos == (khint_t)-1)
 #define kh_ens_size(g) ((g)->count)
+
+#define kh_ens_foreach(g, x) for ((x).sub = 0; (x).sub != 1<<(g)->bits; ++(x).sub) for ((x).pos = 0; (x).pos != kh_end(&(g)->sub[(x).sub]); ++(x).pos) if (kh_ens_exist((g), (x)))
 
 /**************************************
  * Common hash and equality functions *
