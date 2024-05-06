@@ -198,7 +198,8 @@ You will have to change most macros and iteration:
  * `kh_key()` &#8594; `kh_ens_key()`
  * `kh_val()` &#8594; `kh_ens_val()`
  * `kh_foreach()` &#8594; `kh_ens_foreach()`
- * `prefix_init(void)` &#8594; `prefix_init(int)`
+ * `prefix_init(void)` &#8594; `prefix_init(int b)`, which uses `2**b` sub hash tables.
+ * `k == kh_end(h)` &#8594; `kh_ens_is_end(k)` for testing the presence of a key
 
 [klib]: https://github.com/attractivechaos/klib
 [khash]: https://github.com/attractivechaos/klib/blob/master/khash.h
@@ -206,3 +207,4 @@ You will have to change most macros and iteration:
 [khashl.h]: https://github.com/attractivechaos/khashl/blob/main/khashl.h
 [fib-hash]: https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/
 [no-tombstone]: https://attractivechaos.wordpress.com/2019/12/28/deletion-from-hash-tables-without-tombstones/
+[ensemble]: https://greg7mdp.github.io/parallel-hashmap/
