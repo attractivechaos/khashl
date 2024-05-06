@@ -1,4 +1,4 @@
-CFLAGS=-O2
+CFLAGS=-O2 -Wall
 EXE=11int 12str 21int_ens 23large_ens
 
 all:$(EXE)
