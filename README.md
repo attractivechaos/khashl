@@ -1,12 +1,20 @@
-## Introduction
+## Table of Contents
+
+- [Introduction](#intro)
+- [Usage](#use)
+  - [Integer keys](#int)
+  - [String keys](#str)
+
+## <a name="intro"></a>Introduction
 
 Khashl is a single-header macro-based generic hash table library in C. It is an
-improved version of [khash][khash] from [klib][klib]. Klib also has a copy of
-khashl for historical reason. This separate repo provides more [examples][ex].
+improved version of [khash][khash] from [klib][klib] and is one of the faster
+hash table implementations in both C and C++. Klib also has a copy of khashl
+for historical reason. This separate repo provides more [examples][ex].
 
-## Usage
+## <a name="use"></a>Usage
 
-### Integer keys
+### <a name="int"></a>Integer keys
 
 Here is a small example for integer keys:
 ```c
@@ -64,7 +72,7 @@ In khashl, a position is like an iterator. You can retrieve or modify keys and
 values with macros `kh_key(table, pos)` and `kh_val(table, pos)`, respectively.
 Macro `kh_size(table)` gives the number of elements in the table.
 
-### String keys
+### <a name="str"></a>String keys
 
 It is important to note that khashl keeps the pointers to strings. You are
 responsible for managing the memory allocated to the strings.
@@ -96,7 +104,7 @@ The following demonstrates how to insert string pointers and their contents into
 #include <stdio.h>
 #include <string.h>
 #include "khashl.h"
-KHASHL_SET_INIT(KH_LOCAL, strmap_t, strmap, const char*, kh_hash_str, kh_eq_str)
+KHASHL_MAP_INIT(KH_LOCAL, strmap_t, strmap, const char*, int, kh_hash_str, kh_eq_str)
 
 int main(int argc, char *argv[])
 {
@@ -107,12 +115,16 @@ int main(int argc, char *argv[])
     while (scanf("%s", s) > 0) {
         int absent;
         k = strmap_put(h, s, &absent);
-        if (absent) kh_key(h, k) = strdup(s);
+        if (absent) kh_key(h, k) = strdup(s), kh_val(h, k) = 0;
         // else, the key is not touched; we do nothing
+        ++kh_val(h, k);
     }
     printf("# of distinct words: %d\n", kh_size(h));
     // IMPORTANT: free memory allocated by strdup() above
-	kh_foreach(h, k) free((char*)kh_key(h, k));
+    kh_foreach(h, k) {
+        printf("%s: %d\n", kh_key(h, k), kh_val(h, k));
+        free((char*)kh_key(h, k));
+    }
     strmap_destroy(h);
     return 0;
 }
