@@ -218,7 +218,7 @@ You will have to change most macros and iteration:
 
 ## <a name="perf"></a>Performance
 
-<img align="left" src="https://i.ibb.co/64nbn8k/240506-fast.png?v4"/>
+<img align="left" src="https://i.ibb.co/Nrxr81J/240509-fast.png"/>
 
 For details, see [udb3][udb3].
 
