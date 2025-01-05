@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "r28"
+#define AC_VERSION_KHASHL_H "r29"
 
 #include <stdlib.h>
 #include <string.h>
@@ -73,11 +73,11 @@ typedef const char *kh_cstr_t;
  * Configurable macros *
  ***********************/
 
-#ifndef kh_max_count
+#ifndef kh_max_count /* set the max load factor */
 #define kh_max_count(cap) (((cap)>>1) + ((cap)>>2)) /* default load factor: 75% */
 #endif
 
-#ifndef kh_packed
+#ifndef kh_packed /* pack the key-value struct */
 #define kh_packed __attribute__ ((__packed__))
 #endif
 
@@ -98,7 +98,7 @@ typedef const char *kh_cstr_t;
 
 #define __kh_fsize(m) ((m) < 32? 1 : (m)>>5)
 
-static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 2654435769U >> (32 - bits); }
+static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 2654435769U >> (32 - bits); } /* Fibonacci hashing */
 
 /*******************
  * Hash table base *
@@ -332,7 +332,7 @@ typedef struct {
  * More convenient interface *
  *****************************/
 
-#define __kh_cached_hash(x) ((x).hash)
+/* common */
 
 #define KHASHL_SET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	typedef struct { khkey_t key; } kh_packed HType##_s_bucket_t; \
@@ -362,6 +362,10 @@ typedef struct {
 	SCOPE khint_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_m_bucket_t t; t.key = key; return prefix##_m_putp(h, &t, absent); } \
 	SCOPE void prefix##_clear(HType *h) { prefix##_m_clear(h); }
 
+/* cached hashes to trade memory for performance when hashing and comparison are expensive */
+
+#define __kh_cached_hash(x) ((x).hash)
+
 #define KHASHL_CSET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	typedef struct { khkey_t key; khint_t hash; } kh_packed HType##_cs_bucket_t; \
 	static kh_inline int prefix##_cs_eq(HType##_cs_bucket_t x, HType##_cs_bucket_t y) { return x.hash == y.hash && __hash_eq(x.key, y.key); } \
@@ -383,6 +387,8 @@ typedef struct {
 	SCOPE int prefix##_del(HType *h, khint_t k) { return prefix##_cm_del(h, k); } \
 	SCOPE khint_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_cm_bucket_t t; t.key = key, t.hash = __hash_fn(key); return prefix##_cm_putp(h, &t, absent); } \
 	SCOPE void prefix##_clear(HType *h) { prefix##_cm_clear(h); }
+
+/* ensemble for huge hash tables */
 
 #define KHASHE_SET_INIT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	typedef struct { khkey_t key; } kh_packed HType##_es_bucket_t; \
