@@ -31,6 +31,22 @@ uint64_t splitmix64(uint64_t *x)
 	return z ^ (z >> 31);
 }
 
+static khint_t hash_fn64(const void *p, uint32_t key_len)
+{
+	uint64_t x = *(uint64_t*)p;
+	x ^= x >> 30;
+	x *= 0xbf58476d1ce4e5b9ULL;
+	x ^= x >> 27;
+	x *= 0x94d049bb133111ebULL;
+	x ^= x >> 31;
+	return (khint_t)x;
+}
+
+static int key_eq64(const void *p1, const void *p2, uint32_t key_len)
+{
+	return *(uint64_t*)p1 == *(uint64_t*)p2;
+}
+
 int main(int argc, char *argv[])
 {
 	int i, n = 30000000;
@@ -41,7 +57,7 @@ int main(int argc, char *argv[])
 
 	if (argc > 1) n = atol(argv[1]);
 	t = udb_cputime();
-	h = khp_init(8, 8, NULL, NULL);
+	h = khp_init(8, 8, hash_fn64, key_eq64);
 	for (i = 0; i < n; ++i) {
 		uint64_t z, key;
 		int absent;

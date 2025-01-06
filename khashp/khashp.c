@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "khashp.h"
 
 #define kh_max_count(cap) (((cap)>>1) + ((cap)>>2)) /* default load factor: 75% */

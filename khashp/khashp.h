@@ -3,7 +3,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
 
 typedef uint32_t khint_t;
 typedef khint_t (*khp_hash_fn_t)(const void *key, uint32_t key_len);
