@@ -1,4 +1,4 @@
-CFLAGS=-O2 -Wall
+CFLAGS=-O2 -std=c99 -Wall -Wc++-compat #-fsanitize=address,undefined
 EXE=test_int test_str
 
 all:$(EXE)

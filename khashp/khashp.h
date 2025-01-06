@@ -9,13 +9,14 @@ typedef khint_t (*khp_hash_fn_t)(const void *key, uint32_t key_len);
 typedef int (*khp_key_eq_t)(const void *key1, const void *key2, uint32_t key_len);
 
 typedef struct {
-	uint32_t key_len, val_len;
-	uint32_t bits;
-	khint_t count;
-	khp_hash_fn_t hash_fn;
-	khp_key_eq_t key_eq;
-	uint8_t *b;
-	uint32_t *used;
+	uint32_t key_len, val_len; // key and value lengths in bytes
+	uint16_t bits;             // the capacity of the hash table is 1<<bits
+	uint16_t dup;
+	khint_t count;             // number of elements
+	khp_hash_fn_t hash_fn;     // hash function
+	khp_key_eq_t key_eq;       // equality function
+	uint8_t *b;                // buckets
+	uint32_t *used;            // bit flag that indicates which buckets are occupied
 } khashp_t;
 
 #ifdef __cplusplus
@@ -41,7 +42,7 @@ void khp_set_val(const khashp_t *h, khint_t i, const void *v);
 #define khp_exist(h, x) ((h)->used[(x)>>5] >> ((x)&0x1fU) & 1U)
 #define khp_foreach(h, x) for ((x) = 0; (x) != khp_end(h); ++(x)) if (khp_exist((h), (x)))
 
-khashp_t *khp_str_init(uint32_t val_len);
+khashp_t *khp_str_init(uint32_t val_len, int dup);
 void khp_str_destroy(khashp_t *h);
 khint_t khp_str_get(const khashp_t *h, const char *key);
 khint_t khp_str_put(khashp_t *h, const char *key, int *absent);

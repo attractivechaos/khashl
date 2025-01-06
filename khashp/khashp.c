@@ -14,9 +14,9 @@
 
 #define __kh_fsize(m) ((m) < 32? 1 : (m)>>5)
 
-static inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 2654435769U >> (32 - bits); }
+static inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 2654435769U >> (32 - bits); } // Fibonacci hashing
 
-static khint_t khp_hash_fn0(const void *p, uint32_t len)
+static khint_t khp_hash_fn0(const void *p, uint32_t len) // FNV-1a as generic hash function
 {
 	const uint8_t *s = (const uint8_t*)p;
 	khint_t h = 2166136261U;
@@ -26,7 +26,7 @@ static khint_t khp_hash_fn0(const void *p, uint32_t len)
 	return h;
 }
 
-static int khp_key_eq0(const void *key1, const void *key2, uint32_t key_len)
+static int khp_key_eq0(const void *key1, const void *key2, uint32_t key_len) // generic equality function
 {
 	return memcmp(key1, key2, key_len) == 0;
 }
@@ -54,10 +54,11 @@ void khp_clear(khashp_t *h)
 	h->count = 0;
 }
 
-static khint_t khp_getp_core(const khashp_t *h, const void *key, khint_t hash)
+khint_t khp_get(const khashp_t *h, const void *key)
 {
-	khint_t i, last, n_buckets, mask;
+	khint_t i, last, n_buckets, mask, hash;
 	if (h->b == 0) return 0;
+	hash = h->hash_fn(key, h->key_len);
 	n_buckets = (khint_t)1U << h->bits;
 	mask = n_buckets - 1U;
 	i = last = __kh_h2b(hash, h->bits);
@@ -66,11 +67,6 @@ static khint_t khp_getp_core(const khashp_t *h, const void *key, khint_t hash)
 		if (i == last) return n_buckets;
 	}
 	return !__kh_used(h->used, i)? n_buckets : i;
-}
-
-khint_t khp_get(const khashp_t *h, const void *key)
-{
-	return khp_getp_core(h, key, h->hash_fn(key, h->key_len));
 }
 
 int khp_resize(khashp_t *h, khint_t new_n_buckets)
@@ -124,9 +120,9 @@ int khp_resize(khashp_t *h, khint_t new_n_buckets)
 	return 0;
 }
 
-static khint_t khp_putp_core(khashp_t *h, const void *key, khint_t hash, int *absent)
+khint_t khp_put(khashp_t *h, const void *key, int *absent)
 {
-	khint_t n_buckets, i, last, mask;
+	khint_t n_buckets, i, last, mask, hash;
 	n_buckets = h->b? (khint_t)1U<<h->bits : 0U;
 	*absent = -1;
 	if (h->count >= kh_max_count(n_buckets)) { /* rehashing */
@@ -135,6 +131,7 @@ static khint_t khp_putp_core(khashp_t *h, const void *key, khint_t hash, int *ab
 		n_buckets = (khint_t)1U<<h->bits;
 	} /* TODO: to implement automatically shrinking; resize() already support shrinking */
 	mask = n_buckets - 1;
+	hash = h->hash_fn(key, h->key_len);
 	i = last = __kh_h2b(hash, h->bits);
 	while (__kh_used(h->used, i) && !h->key_eq(khp_get_bucket(h, i), key, h->key_len)) {
 		i = (i + 1U) & mask;
@@ -147,11 +144,6 @@ static khint_t khp_putp_core(khashp_t *h, const void *key, khint_t hash, int *ab
 		*absent = 1;
 	} else *absent = 0; /* Don't touch h->b[i] if present */
 	return i;
-}
-
-khint_t khp_put(khashp_t *h, const void *key, int *absent)
-{
-	return khp_putp_core(h, key, h->hash_fn(key, h->key_len), absent);
 }
 
 int khp_del(khashp_t *h, khint_t i)
@@ -174,13 +166,13 @@ int khp_del(khashp_t *h, khint_t i)
 
 void khp_get_val(const khashp_t *h, khint_t i, void *v)
 {
-	void *p = (void*)((uint8_t*)khp_get_bucket(h, i) + h->key_len);
+	uint8_t *p = (uint8_t*)khp_get_bucket(h, i) + h->key_len;
 	if (h->val_len > 0) memcpy(v, p, h->val_len);
 }
 
 void khp_set_val(const khashp_t *h, khint_t i, const void *v)
 {
-	void *p = (void*)((uint8_t*)khp_get_bucket(h, i) + h->key_len);
+	uint8_t *p = (uint8_t*)khp_get_bucket(h, i) + h->key_len;
 	if (h->val_len > 0) memcpy(p, v, h->val_len);
 }
 
@@ -193,13 +185,13 @@ void khp_get_key(const khashp_t *h, khint_t i, void *p)
  * String hash table *
  *********************/
 
-static khint_t khp_str_hash_fn(const void *s, uint32_t key_len)
+static khint_t khp_str_hash_fn(const void *s, uint32_t key_len) // FNV-1a
 {
-	const uint8_t *t;
-	memcpy(&t, s, key_len);
+	const uint8_t *p;
+	memcpy(&p, s, key_len); // get the address to the string
 	khint_t h = 2166136261U;
-	for (; *t; ++t)
-		h ^= *t, h *= 16777619;
+	for (; *p; ++p)
+		h ^= *p, h *= 16777619;
 	return h;
 }
 
@@ -211,18 +203,22 @@ static int kh_str_key_eq(const void *s1, const void *s2, uint32_t key_len)
 	return strcmp(p1, p2) == 0;
 }
 
-khashp_t *khp_str_init(uint32_t val_len)
+khashp_t *khp_str_init(uint32_t val_len, int dup)
 {
-	return khp_init(sizeof(void*), val_len, khp_str_hash_fn, kh_str_key_eq);
+	khashp_t *h = khp_init(sizeof(void*), val_len, khp_str_hash_fn, kh_str_key_eq);
+	h->dup = !!dup;
+	return h;
 }
 
 void khp_str_destroy(khashp_t *h)
 {
-	khint_t k;
-	khp_foreach(h, k) {
-		char *p;
-		khp_get_key(h, k, &p);
-		free(p);
+	if (h->dup) {
+		khint_t k;
+		khp_foreach(h, k) {
+			char *p;
+			khp_get_key(h, k, &p);
+			free(p); // free
+		}
 	}
 	khp_destroy(h);
 }
@@ -236,10 +232,14 @@ khint_t khp_str_put(khashp_t *h, const char *key, int *absent)
 {
 	khint_t k = khp_put(h, &key, absent);
 	if (*absent) {
-		size_t len = strlen(key);
-		char *q = MALLOC(char, len + 1);
-		memcpy(q, key, len + 1); // effectively strdup(), a non-C99 function
-		memcpy(khp_get_bucket(h, k), &q, h->key_len);
+		if (h->dup) {
+			size_t len = strlen(key);
+			char *q = MALLOC(char, len + 1);
+			memcpy(q, key, len + 1);
+			memcpy(khp_get_bucket(h, k), &q, h->key_len); // the bucket keeps the address to the string
+		} else {
+			memcpy(khp_get_bucket(h, k), &key, h->key_len);
+		}
 	}
 	return k;
 }
@@ -247,9 +247,10 @@ khint_t khp_str_put(khashp_t *h, const char *key, int *absent)
 int khp_str_del(khashp_t *h, khint_t i)
 {
 	if (h->b == 0) return 0;
-	char *p;
-	khp_get_key(h, i, &p);
-	free(p);
+	if (h->dup) {
+		char *p;
+		khp_get_key(h, i, &p);
+		free(p);
+	}
 	return khp_del(h, i);
-	return 1;
 }
