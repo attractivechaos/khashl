@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "r29"
+#define AC_VERSION_KHASHL_H "r30"
 
 #include <stdlib.h>
 #include <string.h>
@@ -279,7 +279,7 @@ typedef struct {
 		HType *g; \
 		g = Kcalloc(km, HType, 1); \
 		g->bits = bits, g->km = km; \
-		g->sub = Kcalloc(km, HType##_sub, 1); \
+		g->sub = Kcalloc(km, HType##_sub, 1U<<bits); \
 		return g; \
 	} \
 	SCOPE HType *prefix##_init(int bits) { return prefix##_init2(0, bits); } \
