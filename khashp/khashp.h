@@ -1,7 +1,7 @@
 #ifndef __AC_KHASHP_H
 #define __AC_KHASHP_H
 
-#define AC_VERSION_KHASHP_H "r34"
+#define AC_VERSION_KHASHP_H "r35"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -24,6 +24,8 @@ typedef struct {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifndef KHASHP_STATIC
 
 /**
  * Initialize a hash table
@@ -95,21 +97,6 @@ void khp_get_val(const khashp_t *h, khint_t i, void *v);
 /** Set a value */
 void khp_set_val(const khashp_t *h, khint_t i, const void *v);
 
-/** Get the capacity of a hash table */
-static inline khint_t khp_capacity(const khashp_t *h) { return h->b? 1U<<h->bits : 0U; }
-
-/** End "iterator" */
-static inline khint_t khp_end(const khashp_t *h) { return khp_capacity(h); }
-
-/** Get the number of elements in a hash table */
-static inline khint_t khp_size(const khashp_t *h) { return h->count; }
-
-/** Test whether a bucket is occupied */
-static inline int khp_exist(const khashp_t *h, khint_t x) { return h->used[x>>5] >> (x&0x1fU) & 1U; }
-
-/** Iterate over a hash table */
-#define khp_foreach(h, x) for ((x) = 0; (x) != khp_end(h); ++(x)) if (khp_exist((h), (x)))
-
 /**
  * Initialize a hash table with string keys
  *
@@ -137,6 +124,23 @@ khint_t khp_str_put(khashp_t *h, const char *key, int *absent);
 
 /** Delete an element from a string hash table */
 int khp_str_del(khashp_t *h, khint_t i);
+
+#endif // ~KHASHP_STATIC
+
+/** Get the capacity of a hash table */
+static inline khint_t khp_capacity(const khashp_t *h) { return h->b? 1U<<h->bits : 0U; }
+
+/** End "iterator" */
+static inline khint_t khp_end(const khashp_t *h) { return khp_capacity(h); }
+
+/** Get the number of elements in a hash table */
+static inline khint_t khp_size(const khashp_t *h) { return h->count; }
+
+/** Test whether a bucket is occupied */
+static inline int khp_exist(const khashp_t *h, khint_t x) { return h->used[x>>5] >> (x&0x1fU) & 1U; }
+
+/** Iterate over a hash table */
+#define khp_foreach(h, x) for ((x) = 0; (x) != khp_end(h); ++(x)) if (khp_exist((h), (x)))
 
 static inline void *khp_get_bucket(const khashp_t *h, khint_t i)
 {

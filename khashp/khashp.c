@@ -2,6 +2,12 @@
 #include <string.h>
 #include "khashp.h"
 
+#ifdef KHASHP_STATIC
+#define KHP_SCOPE static inline
+#else
+#define KHP_SCOPE
+#endif
+
 #define kh_max_count(cap) (((cap)>>1) + ((cap)>>2)) /* default load factor: 75% */
 
 #define MALLOC(type, cnt)       ((type*)malloc((cnt) * sizeof(type)))
@@ -31,7 +37,7 @@ static int khp_key_eq0(const void *key1, const void *key2, uint32_t key_len) // 
 	return memcmp(key1, key2, key_len) == 0;
 }
 
-khashp_t *khp_init(uint32_t key_len, uint32_t val_len, khp_hash_fn_t fn, khp_key_eq_t eq)
+KHP_SCOPE khashp_t *khp_init(uint32_t key_len, uint32_t val_len, khp_hash_fn_t fn, khp_key_eq_t eq)
 {
 	khashp_t *h = CALLOC(khashp_t, 1);
 	h->key_len = key_len, h->val_len = val_len;
@@ -40,13 +46,13 @@ khashp_t *khp_init(uint32_t key_len, uint32_t val_len, khp_hash_fn_t fn, khp_key
 	return h;
 }
 
-void khp_destroy(khashp_t *h)
+KHP_SCOPE void khp_destroy(khashp_t *h)
 {
 	if (h == 0) return;
 	free(h->b); free(h);
 }
 
-void khp_clear(khashp_t *h)
+KHP_SCOPE void khp_clear(khashp_t *h)
 {
 	if (h == 0 || h->used == 0) return;
 	khint_t n_buckets = (khint_t)1U << h->bits;
@@ -54,7 +60,7 @@ void khp_clear(khashp_t *h)
 	h->count = 0;
 }
 
-khint_t khp_get(const khashp_t *h, const void *key)
+KHP_SCOPE khint_t khp_get(const khashp_t *h, const void *key)
 {
 	khint_t i, last, n_buckets, mask, hash;
 	if (h->b == 0) return 0;
@@ -69,7 +75,7 @@ khint_t khp_get(const khashp_t *h, const void *key)
 	return !__kh_used(h->used, i)? n_buckets : i;
 }
 
-int khp_resize(khashp_t *h, khint_t new_n_buckets)
+KHP_SCOPE int khp_resize(khashp_t *h, khint_t new_n_buckets)
 {
 	uint32_t *new_used = 0;
 	uint8_t *tmp;
@@ -120,7 +126,7 @@ int khp_resize(khashp_t *h, khint_t new_n_buckets)
 	return 0;
 }
 
-khint_t khp_put(khashp_t *h, const void *key, int *absent)
+KHP_SCOPE khint_t khp_put(khashp_t *h, const void *key, int *absent)
 {
 	khint_t n_buckets, i, last, mask, hash;
 	n_buckets = h->b? (khint_t)1U<<h->bits : 0U;
@@ -146,7 +152,7 @@ khint_t khp_put(khashp_t *h, const void *key, int *absent)
 	return i;
 }
 
-int khp_del(khashp_t *h, khint_t i)
+KHP_SCOPE int khp_del(khashp_t *h, khint_t i)
 {
 	khint_t j = i, k, mask, n_buckets;
 	if (h->b == 0) return 0;
@@ -164,19 +170,19 @@ int khp_del(khashp_t *h, khint_t i)
 	return 1;
 }
 
-void khp_get_val(const khashp_t *h, khint_t i, void *v)
+KHP_SCOPE void khp_get_val(const khashp_t *h, khint_t i, void *v)
 {
 	uint8_t *p = (uint8_t*)khp_get_bucket(h, i) + h->key_len;
 	if (h->val_len > 0) memcpy(v, p, h->val_len);
 }
 
-void khp_set_val(const khashp_t *h, khint_t i, const void *v)
+KHP_SCOPE void khp_set_val(const khashp_t *h, khint_t i, const void *v)
 {
 	uint8_t *p = (uint8_t*)khp_get_bucket(h, i) + h->key_len;
 	if (h->val_len > 0) memcpy(p, v, h->val_len);
 }
 
-void khp_get_key(const khashp_t *h, khint_t i, void *p)
+KHP_SCOPE void khp_get_key(const khashp_t *h, khint_t i, void *p)
 {
 	memcpy(p, khp_get_bucket(h, i), h->key_len);
 }
@@ -203,14 +209,14 @@ static int kh_str_key_eq(const void *s1, const void *s2, uint32_t key_len)
 	return strcmp(p1, p2) == 0;
 }
 
-khashp_t *khp_str_init(uint32_t val_len, int dup)
+KHP_SCOPE khashp_t *khp_str_init(uint32_t val_len, int dup)
 {
 	khashp_t *h = khp_init(sizeof(void*), val_len, khp_str_hash_fn, kh_str_key_eq);
 	h->dup = !!dup;
 	return h;
 }
 
-void khp_str_destroy(khashp_t *h)
+KHP_SCOPE void khp_str_destroy(khashp_t *h)
 {
 	if (h->dup) {
 		khint_t k;
@@ -223,12 +229,12 @@ void khp_str_destroy(khashp_t *h)
 	khp_destroy(h);
 }
 
-khint_t khp_str_get(const khashp_t *h, const char *key)
+KHP_SCOPE khint_t khp_str_get(const khashp_t *h, const char *key)
 {
 	return khp_get(h, &key);
 }
 
-khint_t khp_str_put(khashp_t *h, const char *key, int *absent)
+KHP_SCOPE khint_t khp_str_put(khashp_t *h, const char *key, int *absent)
 {
 	khint_t k = khp_put(h, &key, absent);
 	if (*absent) {
@@ -244,7 +250,7 @@ khint_t khp_str_put(khashp_t *h, const char *key, int *absent)
 	return k;
 }
 
-int khp_str_del(khashp_t *h, khint_t i)
+KHP_SCOPE int khp_str_del(khashp_t *h, khint_t i)
 {
 	if (h->b == 0) return 0;
 	if (h->dup) {

@@ -3,7 +3,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <sys/resource.h>
+
+#if 0
+#define KHASHP_STATIC
+#include "khashp.c"
+#else
 #include "khashp.h"
+#endif
 
 static double udb_cputime(void)
 {
