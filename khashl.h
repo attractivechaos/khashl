@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "r37"
+#define AC_VERSION_KHASHL_H "r38"
 
 #include <stdlib.h>
 #include <string.h>
@@ -174,6 +174,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 		while ((x >>= 1) != 0) ++j; \
 		if (new_n_buckets & (new_n_buckets - 1)) ++j; \
 		new_bits = j > 2? j : 2; \
+		if (new_bits == h->bits) return 0; /* same size; no need to rehash */ \
 		new_n_buckets = (khint_t)1U << new_bits; \
 		if (h->count > kh_max_count(new_n_buckets)) return 0; /* requested size is too small */ \
 		new_used = Kmalloc(h->km, khint32_t, __kh_fsize(new_n_buckets)); \
@@ -346,6 +347,11 @@ typedef struct {
 		int i; \
 		for (i = 0; i < 1U<<g->bits; ++i) prefix##_sub_clear(&g->sub[i]); \
 		g->count = 0; \
+	} \
+	SCOPE void prefix##_resize(HType *g, khint64_t new_n_buckets) { \
+		khint_t j; \
+		for (j = 0; j < 1U<<g->bits; ++j) \
+			prefix##_sub_resize(&g->sub[j], new_n_buckets >> g->bits); \
 	}
 
 /*****************************
@@ -417,6 +423,7 @@ typedef struct {
 	KHASHE_INIT(KH_LOCAL, HType, prefix##_es, HType##_es_bucket_t, prefix##_es_hash, prefix##_es_eq) \
 	SCOPE HType *prefix##_init(int bits) { return prefix##_es_init(bits); } \
 	SCOPE void prefix##_destroy(HType *h) { prefix##_es_destroy(h); } \
+	SCOPE void prefix##_resize(HType *h, khint64_t new_n_buckets) { prefix##_es_resize(h, new_n_buckets); } \
 	SCOPE kh_ensitr_t prefix##_get(const HType *h, khkey_t key) { HType##_es_bucket_t t; t.key = key; return prefix##_es_getp(h, &t); } \
 	SCOPE int prefix##_del(HType *h, kh_ensitr_t k) { return prefix##_es_del(h, k); } \
 	SCOPE kh_ensitr_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_es_bucket_t t; t.key = key; return prefix##_es_putp(h, &t, absent); } \
@@ -429,6 +436,7 @@ typedef struct {
 	KHASHE_INIT(KH_LOCAL, HType, prefix##_em, HType##_em_bucket_t, prefix##_em_hash, prefix##_em_eq) \
 	SCOPE HType *prefix##_init(int bits) { return prefix##_em_init(bits); } \
 	SCOPE void prefix##_destroy(HType *h) { prefix##_em_destroy(h); } \
+	SCOPE void prefix##_resize(HType *h, khint64_t new_n_buckets) { prefix##_em_resize(h, new_n_buckets); } \
 	SCOPE kh_ensitr_t prefix##_get(const HType *h, khkey_t key) { HType##_em_bucket_t t; t.key = key; return prefix##_em_getp(h, &t); } \
 	SCOPE int prefix##_del(HType *h, kh_ensitr_t k) { return prefix##_em_del(h, k); } \
 	SCOPE kh_ensitr_t prefix##_put(HType *h, khkey_t key, int *absent) { HType##_em_bucket_t t; t.key = key; return prefix##_em_putp(h, &t, absent); } \
