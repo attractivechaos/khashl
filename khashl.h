@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "r38"
+#define AC_VERSION_KHASHL_H "r39"
 
 #include <stdlib.h>
 #include <string.h>
@@ -106,7 +106,8 @@ typedef const char *kh_cstr_t;
 
 #define __kh_fsize(m) ((m) < 32? 1 : (m)>>5)
 
-static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 2654435769U >> (32 - bits); } /* Fibonacci hashing */
+static kh_inline khint_t __kh_splitmix32(khint_t *x) { khint_t z = (*x += 0x9e3779b9U); z = (z ^ (z >> 16)) * 0x21f0aaadU; z = (z ^ (z >> 15)) * 0x735a2d97U; return z ^ (z >> 15); }
+static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { return (hash ^ salt) * 2654435769U >> (32 - bits); } /* Fibonacci hashing */
 
 /*******************
  * Hash table base *
@@ -115,7 +116,8 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 #define __KHASHL_TYPE(HType, khkey_t) \
 	typedef struct HType { \
 		void *km; \
-		khint_t bits, count; \
+		unsigned short bits, salt; \
+		khint_t count; \
 		khint32_t *used; \
 		khkey_t *keys; \
 	} HType;
@@ -131,11 +133,13 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 	extern void prefix##_del(HType *h, khint_t k);
 
 #define __KHASHL_IMPL_BASIC(SCOPE, HType, prefix) \
-	SCOPE HType *prefix##_init2(void *km) { \
+	SCOPE HType *prefix##_init3(void *km, khint_t seed) { \
 		HType *h = Kcalloc(km, HType, 1); \
 		h->km = km; \
+		if (seed != 0) h->salt = __kh_splitmix32(&seed); \
 		return h; \
 	} \
+	SCOPE HType *prefix##_init2(void *km) { return prefix##_init3(km, 0); } \
 	SCOPE HType *prefix##_init(void) { return prefix##_init2(0); } \
 	SCOPE void prefix##_destroy(HType *h) { \
 		if (!h) return; \
@@ -157,7 +161,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 		if (h->keys == 0) return 0; \
 		n_buckets = (khint_t)1U << h->bits; \
 		mask = n_buckets - 1U; \
-		i = last = __kh_h2b(hash, h->bits); \
+		i = last = __kh_h2b(hash, h->salt, h->bits); \
 		while (__kh_used(h->used, i) && !__hash_eq(h->keys[i], *key)) { \
 			kh_step_next(i, step, mask); \
 			if (i == last) return n_buckets; \
@@ -195,7 +199,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 			while (1) { /* kick-out process; sort of like in Cuckoo hashing */ \
 				khint_t i; \
 				kh_step_init(step); \
-				i = __kh_h2b(__hash_fn(key), new_bits); \
+				i = __kh_h2b(__hash_fn(key), h->salt, new_bits); \
 				while (__kh_used(new_used, i)) kh_step_next(i, step, new_mask); \
 				__kh_set_used(new_used, i); \
 				if (i < n_buckets && __kh_used(h->used, i)) { /* kick out the existing element */ \
@@ -229,7 +233,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 			n_buckets = (khint_t)1U<<h->bits; \
 		} /* TODO: to implement automatically shrinking; resize() already support shrinking */ \
 		mask = n_buckets - 1; \
-		i = last = __kh_h2b(hash, h->bits); \
+		i = last = __kh_h2b(hash, h->salt, h->bits); \
 		while (__kh_used(h->used, i) && !__hash_eq(h->keys[i], *key)) { \
 			kh_step_next(i, step, mask); \
 			if (i == last) break; \
@@ -255,7 +259,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t bits) { return hash * 26
 		while (1) { \
 			j = (j + 1U) & mask; \
 			if (j == i || !__kh_used(h->used, j)) break; /* j==i only when the table is completely full */ \
-			k = __kh_h2b(__hash_fn(h->keys[j]), h->bits); \
+			k = __kh_h2b(__hash_fn(h->keys[j]), h->salt, h->bits); \
 			if ((j > i && (k <= i || k > j)) || (j < i && (k <= i && k > j))) \
 				h->keys[i] = h->keys[j], i = j; \
 		} \
@@ -295,14 +299,20 @@ typedef struct {
 		khint64_t count:54, bits:8; \
 		HType##_sub *sub; \
 	} HType; \
-	SCOPE HType *prefix##_init2(void *km, int bits) { \
+	SCOPE HType *prefix##_init3(void *km, int bits, khint_t seed) { \
 		HType *g; \
 		g = Kcalloc(km, HType, 1); \
 		if (!g) return 0; \
 		g->bits = bits, g->km = km; \
 		g->sub = Kcalloc(km, HType##_sub, 1U<<bits); \
+		if (seed != 0) { \
+			khint_t i, rng = seed; \
+			for (i = 0; i < 1U<<bits; ++i) \
+				g->sub[i].salt = __kh_splitmix32(&rng); \
+		} \
 		return g; \
 	} \
+	SCOPE HType *prefix##_init2(void *km, int bits) { return prefix##_init3(km, bits, 0); } \
 	SCOPE HType *prefix##_init(int bits) { return prefix##_init2(0, bits); } \
 	SCOPE void prefix##_destroy(HType *g) { \
 		int t; \
@@ -367,6 +377,7 @@ typedef struct {
 	KHASHL_INIT(KH_LOCAL, HType, prefix##_s, HType##_s_bucket_t, prefix##_s_hash, prefix##_s_eq) \
 	SCOPE HType *prefix##_init(void) { return prefix##_s_init(); } \
 	SCOPE HType *prefix##_init2(void *km) { return prefix##_s_init2(km); } \
+	SCOPE HType *prefix##_init3(void *km, khint_t seed) { return prefix##_s_init3(km, seed); } \
 	SCOPE void prefix##_destroy(HType *h) { prefix##_s_destroy(h); } \
 	SCOPE void prefix##_resize(HType *h, khint_t new_n_buckets) { prefix##_s_resize(h, new_n_buckets); } \
 	SCOPE khint_t prefix##_get(const HType *h, khkey_t key) { HType##_s_bucket_t t; t.key = key; return prefix##_s_getp(h, &t); } \
@@ -381,6 +392,7 @@ typedef struct {
 	KHASHL_INIT(KH_LOCAL, HType, prefix##_m, HType##_m_bucket_t, prefix##_m_hash, prefix##_m_eq) \
 	SCOPE HType *prefix##_init(void) { return prefix##_m_init(); } \
 	SCOPE HType *prefix##_init2(void *km) { return prefix##_m_init2(km); } \
+	SCOPE HType *prefix##_init3(void *km, khint_t seed) { return prefix##_m_init3(km, seed); } \
 	SCOPE void prefix##_destroy(HType *h) { prefix##_m_destroy(h); } \
 	SCOPE void prefix##_resize(HType *h, khint_t new_n_buckets) { prefix##_m_resize(h, new_n_buckets); } \
 	SCOPE khint_t prefix##_get(const HType *h, khkey_t key) { HType##_m_bucket_t t; t.key = key; return prefix##_m_getp(h, &t); } \
