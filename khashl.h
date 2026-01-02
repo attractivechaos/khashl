@@ -26,7 +26,7 @@
 #ifndef __AC_KHASHL_H
 #define __AC_KHASHL_H
 
-#define AC_VERSION_KHASHL_H "r39"
+#define AC_VERSION_KHASHL_H "r40"
 
 #include <stdlib.h>
 #include <string.h>
@@ -79,14 +79,6 @@ typedef const char *kh_cstr_t;
 
 #ifndef kh_packed /* pack the key-value struct */
 #define kh_packed __attribute__ ((__packed__))
-#endif
-
-#ifndef kh_quadratic /* use linear probing */
-#define kh_step_init(step)
-#define kh_step_next(i, step, mask) i = (i + 1U) & mask
-#else /* use quadratic probing */
-#define kh_step_init(step) khint_t step = 0
-#define kh_step_next(i, step, mask) i = (i + (++step)) & mask
 #endif
 
 #if !defined(Kmalloc) || !defined(Kcalloc) || !defined(Krealloc) || !defined(Kfree)
@@ -157,13 +149,12 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { re
 #define __KHASHL_IMPL_GET(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	SCOPE khint_t prefix##_getp_core(const HType *h, const khkey_t *key, khint_t hash) { \
 		khint_t i, last, n_buckets, mask; \
-		kh_step_init(step); \
 		if (h->keys == 0) return 0; \
 		n_buckets = (khint_t)1U << h->bits; \
 		mask = n_buckets - 1U; \
 		i = last = __kh_h2b(hash, h->salt, h->bits); \
 		while (__kh_used(h->used, i) && !__hash_eq(h->keys[i], *key)) { \
-			kh_step_next(i, step, mask); \
+			i = (i + 1U) & mask; \
 			if (i == last) return n_buckets; \
 		} \
 		return !__kh_used(h->used, i)? n_buckets : i; \
@@ -198,9 +189,8 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { re
 			__kh_set_unused(h->used, j); \
 			while (1) { /* kick-out process; sort of like in Cuckoo hashing */ \
 				khint_t i; \
-				kh_step_init(step); \
 				i = __kh_h2b(__hash_fn(key), h->salt, new_bits); \
-				while (__kh_used(new_used, i)) kh_step_next(i, step, new_mask); \
+				while (__kh_used(new_used, i)) i = (i + 1U) & new_mask; \
 				__kh_set_used(new_used, i); \
 				if (i < n_buckets && __kh_used(h->used, i)) { /* kick out the existing element */ \
 					{ khkey_t tmp = h->keys[i]; h->keys[i] = key; key = tmp; } \
@@ -224,7 +214,6 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { re
 #define __KHASHL_IMPL_PUT(SCOPE, HType, prefix, khkey_t, __hash_fn, __hash_eq) \
 	SCOPE khint_t prefix##_putp_core(HType *h, const khkey_t *key, khint_t hash, int *absent) { \
 		khint_t n_buckets, i, last, mask; \
-		kh_step_init(step); \
 		n_buckets = h->keys? (khint_t)1U<<h->bits : 0U; \
 		*absent = -1; \
 		if (h->count >= kh_max_count(n_buckets)) { /* rehashing */ \
@@ -235,7 +224,7 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { re
 		mask = n_buckets - 1; \
 		i = last = __kh_h2b(hash, h->salt, h->bits); \
 		while (__kh_used(h->used, i) && !__hash_eq(h->keys[i], *key)) { \
-			kh_step_next(i, step, mask); \
+			i = (i + 1U) & mask; \
 			if (i == last) break; \
 		} \
 		if (!__kh_used(h->used, i)) { /* not present at all */ \
@@ -249,7 +238,6 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { re
 	SCOPE khint_t prefix##_putp(HType *h, const khkey_t *key, int *absent) { return prefix##_putp_core(h, key, __hash_fn(*key), absent); } \
 	SCOPE khint_t prefix##_put(HType *h, khkey_t key, int *absent) { return prefix##_putp_core(h, &key, __hash_fn(key), absent); }
 
-#ifndef kh_quadratic
 #define __KHASHL_IMPL_DEL(SCOPE, HType, prefix, khkey_t, __hash_fn) \
 	SCOPE int prefix##_del(HType *h, khint_t i) { \
 		khint_t j = i, k, mask, n_buckets; \
@@ -267,10 +255,6 @@ static kh_inline khint_t __kh_h2b(khint_t hash, khint_t salt, khint_t bits) { re
 		--h->count; \
 		return 1; \
 	}
-#else
-#define __KHASHL_IMPL_DEL(SCOPE, HType, prefix, khkey_t, __hash_fn) \
-	SCOPE int prefix##_del(HType *h, khint_t i) { abort(); return 0; } /* deletion doesn't work for quadratic probing */
-#endif
 
 #define KHASHL_DECLARE(HType, prefix, khkey_t) \
 	__KHASHL_TYPE(HType, khkey_t) \
